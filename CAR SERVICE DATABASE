@@ -1,1 +1,43 @@
+/*--------------------- CREATE TABLE CLIENTS WITH (NAME, SURNAME, PHONENUMBER, BIRTHDATE AND HASHKEY)-----------------------------------------*/
 
+						CREATE TABLE stage.CLIENTS(
+							ClientID        INT IDENTITY(1,1) PRIMARY KEY,
+							Name            NVARCHAR(100),
+							SURNAME NVARCHAR(20),
+							phonenumber nvarchar(20),
+							BIRTHDATE DATE,
+							HashKey         nVARCHAR(64)
+						);
+--------------------------------------------------------------------------------------------------------------------------------------------------
+CREATE OR ALTER PROCEDURE stage.InsertClientsFromExcel
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    INSERT INTO stage.CLIENTS (Name, Surname, phonenumber, birthdate, HashKey)
+    SELECT DISTINCT 
+        clintname AS Name,
+        clientsurname AS Surname,
+		phone,
+		birthdate,
+        CONVERT(VARCHAR(64),
+            HASHBYTES(
+                'SHA2_256',
+                CONVERT(varchar(100), clintname) +
+                CONVERT(varchar(100), clientsurname) +
+			    CONVERT(varchar(100), phone) +
+				CONVERT(varchar(100), birthdate)
+            ), 2
+        ) AS HashKey
+    FROM OPENROWSET(
+        'Microsoft.ACE.OLEDB.16.0',
+        'Excel 12.0;HDR=YES;Database=D:\sample data\autoservice.xlsx',
+        'SELECT * FROM [Sheet1$]'
+    );
+
+END;
+GO
+
+
+
+	exec stage.InsertClientsFromExcel
